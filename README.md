@@ -109,7 +109,7 @@ Page-Level Citations
 
 ## Features
 
-### Multi-Paper RAG
+### 1.Multi-Paper RAG
 
 * Upload multiple research papers.
 * Process papers asynchronously.
@@ -119,7 +119,7 @@ Page-Level Citations
 * Store embeddings in ChromaDB.
 * Build a BM25 keyword index.
 
-### Hybrid Retrieval
+### 2.Hybrid Retrieval
 
 ResearchFlow combines two retrieval strategies:
 
@@ -140,7 +140,7 @@ Final Score = 0.6 × Semantic Score
 
 This allows ResearchFlow to benefit from both semantic similarity and exact keyword matching.
 
-### Conversational Memory
+### 3.Conversational Memory
 
 ResearchFlow supports follow-up questions.
 
@@ -159,13 +159,13 @@ How is it different from Paper B?
 
 The system uses conversation context to resolve references and converts follow-up questions into standalone retrieval queries before searching the knowledge base.
 
-### Page-Level Citations
+### 4.Page-Level Citations
 
 Answers include the paper and page associated with the retrieved evidence.
 
 This allows users to verify where an answer came from instead of relying on unsupported model-generated information.
 
-### Hallucination Resistance
+### 5.Hallucination Resistance
 
 The LLM is explicitly instructed to answer only from retrieved paper evidence.
 
