@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>ResearchFlow</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --white: #ffffff;
+    --border: #e6e8ec;
+    --text: #111827;
+    --text-dim: #4b5563;
+    --muted: #9ca3af;
+    --blue: #2f6fed;
+    --blue-bg: #eef3ff;
+    --blue-border: #dbe4fd;
+    --green: #16a34a;
+    --green-bg: #ecfdf3;
+    --amber: #d97706;
+    --red: #dc2626;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    font-size: 14px;
+  }
+  .app { display: grid; grid-template-columns: 280px 1fr 320px; height: 100vh; }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 8px; }
+
+  .sidebar { background: var(--white); border-right: 1px solid var(--border); padding: 20px 16px; display: flex; flex-direction: column; overflow: hidden; }
+  .brand { display: flex; align-items: center; gap: 9px; margin-bottom: 20px; }
+  .brand-mark { width: 30px; height: 30px; border-radius: 8px; background: var(--blue-bg); color: var(--blue); display: flex; align-items: center; justify-content: center; }
+  .brand-name { font-weight: 700; font-size: 15px; }
+  .section-label { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+  .upload-btn { width: 100%; background: var(--blue); border: none; color: #fff; border-radius: 9px; padding: 11px 12px; font-size: 13.5px; font-weight: 600; font-family: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 16px; transition: background .15s; }
+  .upload-btn:hover { background: #2560d6; }
+  .upload-btn:disabled { background: #a9bdf0; cursor: not-allowed; }
+
+  .doc-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  .empty-hint { font-size: 12.5px; color: var(--muted); text-align: center; padding: 20px 8px; }
+  .doc-card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 12px 12px; display: flex; gap: 10px; transition: border-color .15s, box-shadow .15s; }
+  .doc-card:hover { border-color: #cdd3dc; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+  .doc-icon { width: 30px; height: 30px; border-radius: 7px; background: #fee9e7; color: #e0483b; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .doc-body { flex: 1; min-width: 0; }
+  .doc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
+  .doc-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .doc-delete { background: none; border: none; color: var(--muted); cursor: pointer; padding: 2px; flex-shrink: 0; transition: color .12s; }
+  .doc-delete:hover { color: var(--red); }
+  .status-row { display: flex; align-items: center; gap: 5px; margin: 5px 0 4px; font-size: 12px; font-weight: 600; }
+  .status-processed { color: var(--green); }
+  .status-processing { color: var(--amber); }
+  .status-uploaded { color: var(--muted); }
+  .status-failed { color: var(--red); }
+  .status-row svg { flex-shrink: 0; }
+  .doc-meta { font-size: 11.5px; color: var(--muted); }
+  .doc-error { font-size: 11px; color: var(--red); margin-top: 3px; }
+
+  .summary-card { background: #fafbfc; border: 1px solid var(--border); border-radius: 10px; padding: 14px 14px; margin-top: 14px; }
+  .summary-title { font-size: 12.5px; font-weight: 700; margin-bottom: 10px; }
+  .summary-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-dim); padding: 4px 0; }
+  .summary-row strong { color: var(--text); font-weight: 600; margin-left: auto; }
+
+  .chat { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  .chat-header { background: var(--white); padding: 16px 28px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .chat-header h1 { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+  .chat-header p { font-size: 12.5px; color: var(--muted); }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .status-live { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; color: var(--text-dim); }
+  .status-live .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+  .status-live.offline .dot { background: var(--red); }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+
+  .chat-messages { flex: 1; overflow-y: auto; padding: 24px 28px; display: flex; flex-direction: column; gap: 16px; max-width: 800px; margin: 0 auto; width: 100%; }
+  .bubble { border-radius: 12px; padding: 14px 16px; border: 1px solid var(--border); }
+  .bubble-user { background: var(--blue-bg); border-color: var(--blue-border); align-self: flex-end; max-width: 80%; }
+  .bubble-assistant { background: var(--white); max-width: 92%; }
+  .bubble-assistant.error { border-color: #fecaca; background: #fff5f5; }
+  .bubble-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .bubble-head-left { display: flex; align-items: center; gap: 8px; }
+  .bubble-name { font-size: 13px; font-weight: 700; }
+  .bot-avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--blue-bg); color: var(--blue); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .bubble-time { font-size: 11.5px; color: var(--muted); }
+  .bubble-text { font-size: 13.5px; line-height: 1.6; color: var(--text); white-space: pre-wrap; }
+
+  .source-tags { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .source-tags-label { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .source-tag { background: var(--blue-bg); color: var(--blue); font-size: 11.5px; font-weight: 600; padding: 4px 10px; border-radius: 100px; cursor: pointer; border: none; transition: background .12s; }
+  .source-tag:hover { background: var(--blue-border); }
+
+  .chat-input-wrap { background: var(--white); border-top: 1px solid var(--border); padding: 16px 28px; display: flex; justify-content: center; }
+  .chat-input { width: 100%; max-width: 800px; display: flex; align-items: center; gap: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 5px 5px 5px 16px; }
+  .chat-input input { flex: 1; background: none; border: none; outline: none; color: var(--text); font-family: inherit; font-size: 13.5px; padding: 10px 0; }
+  .chat-input input::placeholder { color: var(--muted); }
+  .chat-input input:disabled { color: var(--muted); }
+  .send-btn { background: var(--blue); color: #fff; border: none; width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+  .send-btn:hover { background: #2560d6; }
+  .send-btn:disabled { background: #a9bdf0; cursor: not-allowed; }
+
+  .sources { background: var(--white); border-left: 1px solid var(--border); padding: 20px 16px; overflow-y: auto; }
+  .sources-head { margin-bottom: 16px; }
+  .sources-head h2 { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+  .sources-head p { font-size: 12px; color: var(--muted); }
+
+  .source-card { border: 1px solid var(--border); border-radius: 10px; padding: 13px 14px; margin-bottom: 12px; transition: border-color .15s; }
+  .source-card.active { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue); }
+  .source-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .source-card-left { display: flex; align-items: center; gap: 8px; }
+  .source-doc-icon { width: 24px; height: 24px; border-radius: 6px; background: #fee9e7; color: #e0483b; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .source-card-name { font-size: 12.5px; font-weight: 700; }
+  .page-badge { background: var(--blue-bg); color: var(--blue); font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 100px; }
+  .relevance-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+  .relevance-label { color: var(--text-dim); font-weight: 500; }
+  .relevance-pct { font-weight: 700; }
+  .relevance-track { width: 100%; height: 5px; background: #eef0f3; border-radius: 100px; margin-bottom: 12px; overflow: hidden; }
+  .relevance-fill { height: 100%; background: var(--green); border-radius: 100px; }
+  .excerpt-label { font-size: 11.5px; font-weight: 700; color: var(--text-dim); margin-bottom: 5px; }
+  .excerpt-text { font-size: 12px; line-height: 1.55; color: var(--text-dim); font-style: italic; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h11l5 5v11a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"/><path d="M14 4v6h6"/></svg></div>
+      <div class="brand-name">ResearchFlow</div>
+    </div>
+
+    <div class="section-label">Documents</div>
+    <button class="upload-btn" id="upload-btn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+      <span id="upload-btn-text">Upload papers</span>
+    </button>
+    <input type="file" id="file-input" accept="application/pdf" multiple hidden />
+
+    <div class="doc-list" id="doc-list">
+      <div class="empty-hint">No papers uploaded yet.</div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-title">Collection summary</div>
+      <div class="summary-row">Documents<strong id="summary-documents">0</strong></div>
+      <div class="summary-row">Total pages<strong id="summary-pages">0</strong></div>
+      <div class="summary-row">Total chunks<strong id="summary-chunks">0</strong></div>
+    </div>
+  </div>
+
+  <div class="chat">
+    <div class="chat-header">
+      <div>
+        <h1>Research Chat</h1>
+        <p>Ask questions across your uploaded research papers</p>
+      </div>
+      <div class="header-right">
+        <div class="status-live" id="status-live"><span class="dot"></span><span id="status-text">Checking...</span></div>
+        <div class="avatar">A</div>
+      </div>
+    </div>
+
+    <div class="chat-messages" id="chat-messages"></div>
+
+    <div class="chat-input-wrap">
+      <div class="chat-input">
+        <input type="text" id="chat-input" placeholder="Ask a question about your research papers…" />
+        <button class="send-btn" id="send-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sources">
+    <div class="sources-head">
+      <h2>Sources</h2>
+      <p id="sources-subtitle">Ask a question to see sources</p>
+    </div>
+    <div id="sources-list"></div>
+  </div>
+
+</div>
+
+<script>
+const API = '';
+let currentSources = [];
+
+const ICONS = {
+  processed: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>',
+  processing: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',
+  uploaded: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/></svg>',
+  failed: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>',
+  doc: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h11l5 5v11a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"/></svg>',
+};
+
+const STATUS_LABELS = { processed: 'Processed', processing: 'Processing', uploaded: 'Uploaded', failed: 'Failed' };
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+async function checkHealth() {
+  const el = document.getElementById('status-live');
+  const text = document.getElementById('status-text');
+  try {
+    const res = await fetch(`${API}/api/health`);
+    if (!res.ok) throw new Error();
+    el.classList.remove('offline');
+    text.textContent = 'System ready';
+  } catch {
+    el.classList.add('offline');
+    text.textContent = 'Backend unreachable';
+  }
+}
+
+async function fetchPapers() {
+  const res = await fetch(`${API}/api/papers`);
+  const papers = await res.json();
+  renderPapers(papers);
+}
+
+function renderPapers(papers) {
+  const list = document.getElementById('doc-list');
+  if (papers.length === 0) {
+    list.innerHTML = '<div class="empty-hint">No papers uploaded yet.</div>';
+  } else {
+    list.innerHTML = papers.map(p => {
+      const meta = p.status === 'processed'
+        ? `${p.pages ?? '?'} pages · ${p.chunk_count ?? 0} chunks`
+        : p.status === 'failed'
+          ? 'Processing failed'
+          : p.status === 'processing'
+            ? 'Processing…'
+            : 'Not yet processed';
+      const errorLine = p.status === 'failed' && p.error
+        ? `<div class="doc-error">${escapeHtml(p.error)}</div>` : '';
+      return `
+        <div class="doc-card">
+          <div class="doc-icon">${ICONS.doc}</div>
+          <div class="doc-body">
+            <div class="doc-top">
+              <div class="doc-name" title="${escapeHtml(p.filename)}">${escapeHtml(p.filename)}</div>
+              <button class="doc-delete" data-paper-id="${p.paper_id}" aria-label="Delete paper">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>
+              </button>
+            </div>
+            <div class="status-row status-${p.status}">${ICONS[p.status] || ''}${STATUS_LABELS[p.status] || p.status}</div>
+            <div class="doc-meta">${meta}</div>
+            ${errorLine}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  document.getElementById('summary-documents').textContent = papers.length;
+  document.getElementById('summary-pages').textContent = papers.reduce((s, p) => s + (p.pages || 0), 0);
+  document.getElementById('summary-chunks').textContent = papers.reduce((s, p) => s + (p.chunk_count || 0), 0);
+
+  document.querySelectorAll('.doc-delete').forEach(btn => {
+    btn.addEventListener('click', () => deletePaper(btn.dataset.paperId));
+  });
+}
+
+async function deletePaper(paperId) {
+  await fetch(`${API}/api/papers/${paperId}`, { method: 'DELETE' });
+  await fetchPapers();
+}
+
+async function uploadFiles(files) {
+  const uploadBtn = document.getElementById('upload-btn');
+  const uploadBtnText = document.getElementById('upload-btn-text');
+  uploadBtn.disabled = true;
+
+  try {
+    uploadBtnText.textContent = 'Uploading…';
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append('file', file);
+      await fetch(`${API}/api/papers/upload`, { method: 'POST', body: formData });
+    }
+    await fetchPapers();
+
+    uploadBtnText.textContent = 'Processing…';
+    await fetch(`${API}/api/papers/process`, { method: 'POST' });
+    await fetchPapers();
+  } catch (err) {
+    alert('Upload failed: ' + err.message);
+  } finally {
+    uploadBtnText.textContent = 'Upload papers';
+    uploadBtn.disabled = false;
+  }
+}
+
+function renderSources(sources) {
+  currentSources = sources;
+  const list = document.getElementById('sources-list');
+  const subtitle = document.getElementById('sources-subtitle');
+
+  if (!sources || sources.length === 0) {
+    list.innerHTML = '';
+    subtitle.textContent = 'No sources for this answer';
+    return;
+  }
+
+  subtitle.textContent = `Top ${sources.length} relevant source${sources.length > 1 ? 's' : ''}`;
+  list.innerHTML = sources.map((s, i) => {
+    const pct = Math.round((s.score ?? 0.5) * 100);
+    return `
+      <div class="source-card" data-source="${i + 1}">
+        <div class="source-card-top">
+          <div class="source-card-left">
+            <div class="source-doc-icon">${ICONS.doc}</div>
+            <div class="source-card-name" title="${escapeHtml(s.paper_name)}">${escapeHtml(s.paper_name)}</div>
+          </div>
+          <div class="page-badge">Page ${s.page}</div>
+        </div>
+        <div class="relevance-row">
+          <span class="relevance-label">Relevance score</span>
+          <span class="relevance-pct">${pct}%</span>
+        </div>
+        <div class="relevance-track"><div class="relevance-fill" style="width: ${pct}%;"></div></div>
+        <div class="excerpt-label">Excerpt</div>
+        <div class="excerpt-text">"${escapeHtml(s.snippet)}"</div>
+      </div>`;
+  }).join('');
+}
+
+function appendBubble({ role, text, sources, time, isError }) {
+  const container = document.getElementById('chat-messages');
+  const bubble = document.createElement('div');
+
+  if (role === 'user') {
+    bubble.className = 'bubble bubble-user';
+    bubble.innerHTML = `
+      <div class="bubble-head">
+        <div class="bubble-head-left"><span class="bubble-name">You</span></div>
+        <span class="bubble-time">${time}</span>
+      </div>
+      <div class="bubble-text">${escapeHtml(text)}</div>`;
+  } else {
+    bubble.className = 'bubble bubble-assistant' + (isError ? ' error' : '');
+    const sourceTagsHtml = sources && sources.length
+      ? `<div class="source-tags">
+          <span class="source-tags-label">Sources:</span>
+          ${sources.map((s, i) => `<button class="source-tag" data-source="${i + 1}">${escapeHtml(s.paper_name)} (Page ${s.page})</button>`).join('')}
+        </div>`
+      : '';
+    bubble.innerHTML = `
+      <div class="bubble-head">
+        <div class="bubble-head-left">
+          <div class="bot-avatar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M9 4h6"/><circle cx="9" cy="14" r="1"/><circle cx="15" cy="14" r="1"/></svg></div>
+          <span class="bubble-name">ResearchFlow</span>
+        </div>
+        <span class="bubble-time">${time}</span>
+      </div>
+      <div class="bubble-text">${escapeHtml(text)}</div>
+      ${sourceTagsHtml}`;
+  }
+
+  container.appendChild(bubble);
+  container.scrollTop = container.scrollHeight;
+
+  bubble.querySelectorAll('.source-tag').forEach(btn => {
+    btn.addEventListener('click', () => highlightSource(btn.dataset.source));
+  });
+}
+
+function highlightSource(id) {
+  document.querySelectorAll('.source-card').forEach(c => c.classList.remove('active'));
+  const card = document.querySelector(`.source-card[data-source="${id}"]`);
+  if (card) {
+    card.classList.add('active');
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+function timeNow() {
+  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('send-btn');
+  const question = input.value.trim();
+  if (!question) return;
+
+  appendBubble({ role: 'user', text: question, time: timeNow() });
+  input.value = '';
+  input.disabled = true;
+  sendBtn.disabled = true;
+
+  try {
+    const res = await fetch(`${API}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, session_id: 'default' }),
+    });
+    if (!res.ok) throw new Error(`Server returned ${res.status}`);
+    const data = await res.json();
+    appendBubble({ role: 'assistant', text: data.answer, sources: data.sources, time: timeNow() });
+    renderSources(data.sources);
+  } catch (err) {
+    appendBubble({ role: 'assistant', text: `Something went wrong reaching the backend: ${err.message}`, time: timeNow(), isError: true });
+  } finally {
+    input.disabled = false;
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+async function loadHistory() {
+  try {
+    const res = await fetch(`${API}/api/chat/history?session_id=default`);
+    const data = await res.json();
+    const history = data.history || [];
+    for (let i = 0; i < history.length; i++) {
+      const turn = history[i];
+      appendBubble({ role: turn.role, text: turn.content, time: '' });
+    }
+  } catch {}
+}
+
+document.getElementById('upload-btn').addEventListener('click', () => {
+  document.getElementById('file-input').click();
+});
+document.getElementById('file-input').addEventListener('change', (e) => {
+  if (e.target.files.length) uploadFiles(e.target.files);
+  e.target.value = '';
+});
+document.getElementById('send-btn').addEventListener('click', sendMessage);
+document.getElementById('chat-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') sendMessage();
+});
+
+checkHealth();
+fetchPapers();
+loadHistory();
+setInterval(checkHealth, 15000);
+</script>
+</body>
+</html>

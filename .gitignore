@@ -1,0 +1,17 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# ResearchFlow local data — should not be committed
+backend/data/uploaded_papers/*
+backend/data/chroma_db/*
+backend/data/store/*
+
+!backend/data/uploaded_papers/.gitkeep
+!backend/data/chroma_db/.gitkeep
+!backend/data/store/.gitkeep
+
+# OS/editor junk
+.DS_Store
+.vscode/
