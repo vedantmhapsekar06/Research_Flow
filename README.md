@@ -586,19 +586,25 @@ An integrated PDF viewer with direct page navigation could improve source verifi
 ## Project Structure
 
 ```text
-ResearchFlow/
+Research_Flow/
+│
+├── .gitignore
+├── README.md
 │
 ├── backend/
-│   │
 │   ├── main.py
+│   ├── requirements.txt
 │   │
 │   ├── core/
+│   │   ├── __init__.py
 │   │   └── config.py
 │   │
 │   ├── models/
+│   │   ├── __init__.py
 │   │   └── schemas.py
 │   │
 │   ├── services/
+│   │   ├── __init__.py
 │   │   ├── pdf_processor.py
 │   │   ├── chunker.py
 │   │   ├── embeddings.py
@@ -609,22 +615,25 @@ ResearchFlow/
 │   │   └── chat_service.py
 │   │
 │   ├── api/
+│   │   ├── __init__.py
 │   │   ├── papers.py
 │   │   └── chat.py
 │   │
-│   └── requirements.txt
+│   ├── data/
+│   │   ├── uploaded_papers/
+│   │   │   └── .gitkeep
+│   │   ├── chroma_db/
+│   │   │   └── .gitkeep
+│   │   └── store/
+│   │       └── .gitkeep
+│   │
+│   ├── test_retriever.py       # validates hybrid retrieval returns correct, relevant chunks
+│   ├── test_chat.py            # validates end-to-end Q&A: retrieval + generation + follow-up memory
+│   ├── inspect_scores.py       # diagnostic — prints raw semantic/BM25 scores to debug relevance filtering
+│   └── inspect_context.py      # diagnostic — prints the exact context block sent to the LLM
 │
-├── frontend/
-│   └── index.html
-│
-├── data/
-│   ├── chroma_db/
-│   ├── store/
-│   └── uploaded_papers/
-│
-├── vector_store/
-│
-└── README.md
+└── frontend/
+    └── index.html
 ```
 
 ---
