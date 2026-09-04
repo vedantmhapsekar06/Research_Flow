@@ -420,8 +420,8 @@ The test suite focuses on six categories:
 | 2 | Exact Factual Retrieval  | Precise numbers survive chunking and retrieval    | ✅ Pass       |
 | 3 | Cross-Paper Retrieval    | Information can be synthesized from multiple PDFs | ✅ Pass       |
 | 4 | Follow-Up Questions      | Conversational context resolves references        | ✅ Pass       |
-| 5 | Citation Accuracy        | Cited page contains the claimed information       | ✅ Pass (3/3) |
-| 6 | Hallucination Resistance | System refuses unsupported/fabricated premises    | ✅ Pass (2/2) |
+| 5 | Citation Accuracy        | Cited page contains the claimed information       | ✅ Pass       |
+| 6 | Hallucination Resistance | System refuses unsupported/fabricated premises    | ✅ Pass       |
 
 ---
 
@@ -487,57 +487,6 @@ rather than an answer generated from the LLM's general knowledge.
 
 ---
 
-## Real Debugging Story
-
-During testing, a subtle grounding problem was discovered.
-
-A fabricated question was asked:
-
-```text
-Does this paper mention using Redis for caching?
-```
-
-The system correctly determined that Redis was not mentioned.
-
-However, it still displayed several source citations, making the response appear grounded.
-
-### First Attempt
-
-A fixed relevance-score threshold was introduced to filter weak retrieval matches.
-
-This did not reliably solve the problem.
-
-For a small, topically narrow corpus, semantic similarity scores for irrelevant queries can overlap with scores for relevant queries. Therefore, a single numeric threshold could not reliably distinguish relevant from irrelevant queries.
-
-### Second Attempt
-
-The relevance decision was moved to the LLM using an explicit:
-
-```text
-NOT_FOUND:
-```
-
-marker convention.
-
-This worked for the original case, but another test showed that the LLM could reach the correct conclusion while using different natural-language phrasing, such as:
-
-```text
-There is no information about...
-```
-
-The exact marker was therefore not always produced.
-
-### Final Fix
-
-Detection was broadened to recognize common natural-language refusal patterns in addition to the strict marker.
-
-This highlighted an important lesson:
-
-> Correct LLM reasoning and reliable machine-readable signaling of that reasoning are two separate problems.
-
-Testing therefore needs to evaluate both.
-
----
 
 ## Known Limitations
 
