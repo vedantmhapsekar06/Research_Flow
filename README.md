@@ -792,6 +792,7 @@ This makes the system more useful for research-oriented question answering.
 ---
 
 ## License
+Vedant Mhapsekar
 
 This project is intended for educational and portfolio purposes.
 
