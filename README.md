@@ -1,134 +1,881 @@
 # ResearchFlow
 
-A fully local, hybrid-retrieval RAG chatbot for querying multiple research papers — no paid APIs, no cloud dependency. Upload PDFs, ask natural-language questions, get answers grounded in the actual paper text with page-level citations.
+A fully local, hybrid-retrieval RAG chatbot for querying multiple research papers — no paid APIs, no cloud dependency. Upload PDFs, ask natural-language questions, and get answers grounded in the actual paper text with page-level citations.
 
 Built as a portfolio project to explore retrieval-augmented generation end-to-end: chunking strategy, hybrid semantic + keyword search, citation grounding, and hallucination resistance — all running on a local LLM via Ollama.
 
 ---
 
-## Why local?
+## Why Local?
 
 Every part of this stack runs on your own machine, for free:
-- **LLM + embeddings**: [Ollama](https://ollama.com) (`llama3.2` for chat, `nomic-embed-text` for embeddings)
-- **Vector store**: ChromaDB (persisted to disk)
-- **Keyword search**: BM25 (`rank_bm25`)
-- **PDF parsing**: PyMuPDF
 
-No API keys, no per-request cost, no data leaving your machine.
+- **LLM + Embeddings:** Ollama (`llama3.2` for chat, `nomic-embed-text` for embeddings)
+- **Vector Store:** ChromaDB (persisted to disk)
+- **Keyword Search:** BM25 (`rank_bm25`)
+- **PDF Parsing:** PyMuPDF
+- **Backend:** FastAPI
+- **Frontend:** HTML, CSS, JavaScript
+
+No API keys, no per-request cost, and no research documents need to leave your machine.
 
 ---
 
 ## Architecture
 
-```
-PDF Upload → Page-level text extraction → Overlapping chunking (220 words, 40-word overlap)
-    → Embedding (Ollama / nomic-embed-text) → ChromaDB vector store
-                                             → BM25 keyword index
+```text
+                         RESEARCHFLOW
+                              │
+                              ▼
+                       PDF Upload
+                              │
+                              ▼
+                  Page-Level Text Extraction
+                              │
+                              ▼
+                Overlapping Chunking
+                 220 words / 40 overlap
+                              │
+                    ┌─────────┴─────────┐
+                    ▼                   ▼
+             Ollama Embeddings       BM25
+            nomic-embed-text      Keyword Index
+                    │                   │
+                    ▼                   ▼
+                ChromaDB          Keyword Search
+                    │                   │
+                    └─────────┬─────────┘
+                              ▼
+                       Hybrid Retrieval
+                      Semantic + BM25
+                         Score Fusion
+                           0.6 / 0.4
+                              │
+                              ▼
+                     Top-K Relevant Chunks
+                              │
+                              ▼
+                         Llama 3.2
+                              │
+                              ▼
+                  Grounded Answer + Sources
+                              │
+                              ▼
+                    ResearchFlow Chat UI
+````
 
-User Question → Follow-up resolution (LLM condenses conversational context into a standalone query)
-    → Hybrid retrieval (semantic search + BM25, weighted score fusion: 0.6 / 0.4)
-    → Top-K chunks passed to LLM with strict grounding instructions
-    → Answer + page-cited sources returned to UI
+### Query Pipeline
+
+```text
+User Question
+      │
+      ▼
+Conversation Context
+      │
+      ▼
+Follow-Up Query Resolution
+      │
+      ▼
+Standalone Search Query
+      │
+      ▼
+Hybrid Retrieval
+ ┌────┴────┐
+ ▼         ▼
+Semantic   BM25
+Search     Search
+ └────┬────┘
+      ▼
+Weighted Score Fusion
+      │
+      ▼
+Top-K Chunks
+      │
+      ▼
+Llama 3.2
+      │
+      ▼
+Grounded Response
+      │
+      ▼
+Page-Level Citations
 ```
 
-**Backend**: FastAPI, serving both the REST API and the static frontend from a single process.
-**Frontend**: Single-file HTML/CSS/JS — no framework, no build step.
+**Backend:** FastAPI, serving the REST API and static frontend from a single process.
+
+**Frontend:** Single-file HTML/CSS/JavaScript with no framework and no build step.
 
 ---
 
 ## Features
 
-- Multi-PDF upload with async processing (extract → chunk → embed → index)
-- Hybrid retrieval: dense semantic search (catches paraphrasing) + BM25 (catches exact terms, acronyms, numbers)
-- Page-level source citations with relevance scores, clickable to highlight the supporting excerpt
-- Conversational memory — follow-up questions are automatically resolved into standalone queries before retrieval
-- Explicit hallucination resistance: the system is instructed to say "not found in the papers" rather than answer from the LLM's own training knowledge, even for well-known papers
+### Multi-Paper RAG
+
+* Upload multiple research papers.
+* Process papers asynchronously.
+* Extract text page-by-page.
+* Split documents into overlapping chunks.
+* Generate embeddings locally.
+* Store embeddings in ChromaDB.
+* Build a BM25 keyword index.
+
+### Hybrid Retrieval
+
+ResearchFlow combines two retrieval strategies:
+
+**Semantic Retrieval**
+
+Uses vector embeddings to find conceptually similar content, even when the wording differs.
+
+**BM25 Keyword Retrieval**
+
+Captures exact terminology, acronyms, numbers, and technical keywords.
+
+The two retrieval results are combined using weighted score fusion:
+
+```text
+Final Score = 0.6 × Semantic Score
+            + 0.4 × BM25 Score
+```
+
+This allows ResearchFlow to benefit from both semantic similarity and exact keyword matching.
+
+### Conversational Memory
+
+ResearchFlow supports follow-up questions.
+
+For example:
+
+```text
+User:
+What retrieval method does Paper A use?
+
+User:
+Why did they choose that approach?
+
+User:
+How is it different from Paper B?
+```
+
+The system uses conversation context to resolve references and converts follow-up questions into standalone retrieval queries before searching the knowledge base.
+
+### Page-Level Citations
+
+Answers include the paper and page associated with the retrieved evidence.
+
+This allows users to verify where an answer came from instead of relying on unsupported model-generated information.
+
+### Hallucination Resistance
+
+The LLM is explicitly instructed to answer only from retrieved paper evidence.
+
+If the requested information cannot be found in the uploaded papers, the system should respond that the information was not found rather than relying on the model's general knowledge.
+
+---
+
+## Technology Stack
+
+| Component            | Technology              |
+| -------------------- | ----------------------- |
+| Programming Language | Python                  |
+| Backend              | FastAPI                 |
+| Frontend             | HTML / CSS / JavaScript |
+| LLM                  | Llama 3.2               |
+| Local Model Runtime  | Ollama                  |
+| Embedding Model      | nomic-embed-text        |
+| Vector Database      | ChromaDB                |
+| Keyword Retrieval    | BM25                    |
+| PDF Processing       | PyMuPDF                 |
+| API Server           | Uvicorn                 |
 
 ---
 
 ## Setup
 
-**Prerequisites:** Python 3.10+, [Ollama](https://ollama.com) installed and running.
+### Prerequisites
+
+* Python 3.10+
+* Ollama
+* Windows / Linux / macOS
+* Recommended: at least 8 GB RAM for comfortable local operation
+
+Install Ollama from:
+
+[https://ollama.com](https://ollama.com)
+
+---
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/YOUR_USERNAME/ResearchFlow.git
+cd ResearchFlow
+```
+
+---
+
+### 2. Install Ollama Models
+
+Pull the chat model:
 
 ```bash
 ollama pull llama3.2
+```
+
+Pull the embedding model:
+
+```bash
 ollama pull nomic-embed-text
 ```
 
+Make sure Ollama is running before starting ResearchFlow.
+
+---
+
+### 3. Create a Virtual Environment
+
+Navigate to the backend:
+
 ```bash
 cd backend
+```
+
+Create the environment:
+
+```bash
 python -m venv venv
-venv\Scripts\activate        # Windows
+```
+
+Activate it on Windows:
+
+```bash
+venv\Scripts\activate
+```
+
+On macOS/Linux:
+
+```bash
+source venv/bin/activate
+```
+
+---
+
+### 4. Install Dependencies
+
+```bash
 pip install -r requirements.txt
-python main.py                # runs on http://localhost:8500
-```
-
-Open `http://localhost:8500/` — upload a PDF, wait for it to process, and start asking questions.
-
----
-
-## Testing methodology
-
-Rather than eyeballing a few chat responses, I built a **six-category test suite** targeting the specific failure modes RAG systems are known for, and ran it against multiple paper sets — including well-known papers (*Attention Is All You Need*, *XGBoost*) specifically chosen because a local LLM is likely to have memorized real facts about them, making grounding failures easier to surface.
-
-| # | Category | What it verifies | Result |
-|---|---|---|---|
-| 1 | Basic retrieval | Simple single-paper factual questions | ✅ Pass |
-| 2 | Exact factual retrieval | Precise numbers survive chunking + retrieval | ✅ Pass |
-| 3 | Cross-paper retrieval | A single answer correctly synthesizes chunks from two different PDFs | ✅ Pass |
-| 4 | Follow-up questions | Conversational memory resolves pronouns/context across turns | ✅ Pass |
-| 5 | Citation accuracy | Cited page actually contains the claimed fact — tested 3x independently | ✅ Pass (3/3) |
-| 6 | Hallucination resistance | System refuses to answer fabricated premises, even when tempting real details are nearby in the same paper | ✅ Pass (2/2 traps, different papers) |
-
-### A real debugging story worth noting
-
-Early testing surfaced a subtle but important failure: asked about a fabricated topic ("does this paper mention using Redis for caching?"), the system correctly said no — but still displayed 6 source citations, as if the answer were grounded. Digging in:
-
-1. **First attempt**: added a fixed relevance-score threshold to filter weak retrieval matches. This didn't work — for a small, topically-narrow corpus, semantic similarity for *irrelevant* queries sits in nearly the same numeric range as similarity for *relevant* ones (a known embedding-model behavior called anisotropy). No single threshold could separate the two distributions.
-2. **Second attempt**: moved the "is this actually relevant" decision from a numeric score to the LLM itself, via an explicit `NOT_FOUND:` marker convention in the system prompt. This worked for the case that surfaced it — but a later test showed the LLM would sometimes reach the *correct* conclusion while phrasing it differently ("There is no information about...") instead of using the exact marker string, silently bypassing the check.
-3. **Final fix**: broadened the detection to catch common natural-language refusal phrasings in addition to the strict marker, rather than relying on exact string matching.
-
-This ended up being a good lesson in a subtlety of building grounded LLM systems: correct LLM *reasoning* and reliable *machine-readable signaling* of that reasoning are two separate problems, and testing needs to catch both.
-
----
-
-## Known limitations
-
-- **Table/figure structure is lost during PDF text extraction.** PyMuPDF flattens tables into linear text, so a dense results table can become hard for a small local model to parse correctly (e.g. distinguishing which number belongs to which row). This is a general, unsolved-in-the-small problem for naive PDF-to-text RAG pipelines — production systems typically use dedicated table-extraction models.
-- **Recall on broad, comparative questions is imperfect.** A question like "compare X and Y's approaches" may not retrieve every relevant chunk, since relevant content can be spread thinly across many non-adjacent chunks. This is normal hybrid-retrieval behavior, not a bug — no retrieval system has perfect recall.
-- **Small local LLM (3B parameters)**: `llama3.2` handles single- and multi-source synthesis well in testing, but is more likely than a larger model to need explicit, carefully-worded instructions to stay reliably grounded. Swapping to a larger local model (e.g. `llama3.1:8b`) is a one-line config change if needed.
-
----
-
-## Project structure
-
-```
-backend/
-├── main.py                  # FastAPI entrypoint, serves API + static frontend
-├── core/config.py           # All settings: models, chunk sizes, retrieval weights
-├── models/schemas.py        # Pydantic request/response models
-├── services/
-│   ├── pdf_processor.py     # PDF → per-page text extraction
-│   ├── chunker.py           # Page text → overlapping chunks
-│   ├── embeddings.py        # Ollama embedding client
-│   ├── vector_store.py      # ChromaDB wrapper
-│   ├── storage.py           # JSON-backed paper registry + chunk store
-│   ├── retriever.py         # Hybrid (semantic + BM25) retrieval
-│   ├── llm.py                # Ollama chat client + query condensing
-│   └── chat_service.py      # Orchestrates retrieval + generation + memory
-└── api/
-    ├── papers.py             # Upload / list / delete / process endpoints
-    └── chat.py                # Chat endpoint
-frontend/
-└── index.html                 # Single-file chat UI
 ```
 
 ---
 
-## Possible future improvements
+### 5. Start ResearchFlow
 
-- Dedicated table extraction for PDFs with dense results tables
-- Cross-encoder reranking stage for improved recall on broad/comparative questions
-- Persist conversation history to disk (currently in-memory, resets on server restart)
-- Embedded PDF viewer in the sources panel (currently shows excerpt snippets only)
+```bash
+python main.py
+```
+
+The application runs on:
+
+```text
+http://localhost:8500/
+```
+
+Open the URL in your browser.
+
+---
+
+## Usage
+
+### Step 1 — Upload Papers
+
+Upload one or more research papers in PDF format.
+
+```text
+Paper 1.pdf
+Paper 2.pdf
+Paper 3.pdf
+...
+```
+
+ResearchFlow processes each paper independently.
+
+---
+
+### Step 2 — Processing
+
+Each uploaded paper goes through:
+
+```text
+PDF
+ ↓
+Page Extraction
+ ↓
+Text Cleaning
+ ↓
+Chunking
+ ↓
+Embedding Generation
+ ↓
+ChromaDB
+ ↓
+BM25 Index
+```
+
+Each chunk retains metadata such as:
+
+* Paper ID
+* Paper name
+* Page number
+* Chunk ID
+* Text content
+
+---
+
+### Step 3 — Ask Questions
+
+Ask questions naturally about the uploaded research papers.
+
+Examples:
+
+```text
+What is the main problem addressed by this paper?
+```
+
+```text
+What retrieval method does the paper propose?
+```
+
+```text
+What chunk size does the system use?
+```
+
+```text
+What were the reported results?
+```
+
+---
+
+### Step 4 — Ask Follow-Up Questions
+
+ResearchFlow maintains conversational context.
+
+Example:
+
+```text
+User:
+What retrieval approach does Paper A use?
+
+Assistant:
+Paper A uses hybrid retrieval...
+
+User:
+Why did they use it?
+
+Assistant:
+They use it to combine...
+
+User:
+How is that different from Paper B?
+
+Assistant:
+Paper B differs by...
+```
+
+The follow-up questions are reformulated into standalone search queries before retrieval.
+
+---
+
+## Multi-Paper Questions
+
+ResearchFlow can retrieve evidence from multiple papers for a single question.
+
+Example:
+
+```text
+Compare the retrieval approaches used in these papers.
+```
+
+The system may retrieve:
+
+```text
+Paper A → Chunk 12
+Paper A → Chunk 18
+Paper B → Chunk 7
+Paper C → Chunk 21
+```
+
+The retrieved evidence is then provided to the LLM to generate a combined answer.
+
+---
+
+## Testing Methodology
+
+Rather than relying only on manual testing, ResearchFlow was tested against several RAG-specific failure modes.
+
+The test suite focuses on six categories:
+
+| # | Category                 | What It Verifies                                  | Result       |
+| - | ------------------------ | ------------------------------------------------- | ------------ |
+| 1 | Basic Retrieval          | Simple single-paper factual questions             | ✅ Pass       |
+| 2 | Exact Factual Retrieval  | Precise numbers survive chunking and retrieval    | ✅ Pass       |
+| 3 | Cross-Paper Retrieval    | Information can be synthesized from multiple PDFs | ✅ Pass       |
+| 4 | Follow-Up Questions      | Conversational context resolves references        | ✅ Pass       |
+| 5 | Citation Accuracy        | Cited page contains the claimed information       | ✅ Pass (3/3) |
+| 6 | Hallucination Resistance | System refuses unsupported/fabricated premises    | ✅ Pass (2/2) |
+
+---
+
+## Example Test Questions
+
+### Basic Retrieval
+
+```text
+What is the main problem addressed by this paper?
+```
+
+### Exact Retrieval
+
+```text
+What chunk size and overlap does the paper use?
+```
+
+### Numerical Retrieval
+
+```text
+What citation accuracy was reported for the hybrid retrieval approach?
+```
+
+### Cross-Paper Retrieval
+
+```text
+Compare the approaches used by these two papers.
+```
+
+### Follow-Up Retrieval
+
+```text
+What retrieval method does the first paper use?
+```
+
+Follow-up:
+
+```text
+Why did they use that approach?
+```
+
+Follow-up:
+
+```text
+How is it different from the second paper?
+```
+
+### Hallucination Test
+
+Ask about information that does not exist in the uploaded papers:
+
+```text
+Does the paper use Redis for caching?
+```
+
+The expected behavior is:
+
+```text
+The information was not found in the uploaded papers.
+```
+
+rather than an answer generated from the LLM's general knowledge.
+
+---
+
+## Real Debugging Story
+
+During testing, a subtle grounding problem was discovered.
+
+A fabricated question was asked:
+
+```text
+Does this paper mention using Redis for caching?
+```
+
+The system correctly determined that Redis was not mentioned.
+
+However, it still displayed several source citations, making the response appear grounded.
+
+### First Attempt
+
+A fixed relevance-score threshold was introduced to filter weak retrieval matches.
+
+This did not reliably solve the problem.
+
+For a small, topically narrow corpus, semantic similarity scores for irrelevant queries can overlap with scores for relevant queries. Therefore, a single numeric threshold could not reliably distinguish relevant from irrelevant queries.
+
+### Second Attempt
+
+The relevance decision was moved to the LLM using an explicit:
+
+```text
+NOT_FOUND:
+```
+
+marker convention.
+
+This worked for the original case, but another test showed that the LLM could reach the correct conclusion while using different natural-language phrasing, such as:
+
+```text
+There is no information about...
+```
+
+The exact marker was therefore not always produced.
+
+### Final Fix
+
+Detection was broadened to recognize common natural-language refusal patterns in addition to the strict marker.
+
+This highlighted an important lesson:
+
+> Correct LLM reasoning and reliable machine-readable signaling of that reasoning are two separate problems.
+
+Testing therefore needs to evaluate both.
+
+---
+
+## Known Limitations
+
+### 1. Table and Figure Structure
+
+PDF text extraction can flatten tables into linear text.
+
+For example, a table such as:
+
+```text
+PaperQA    100%    0%    0%
+Vanilla RAG 22%    6%   22%
+```
+
+may be extracted as a sequence of values without preserving the original row-column relationships.
+
+This can make dense results tables difficult for a small local LLM to interpret correctly.
+
+This limitation originates primarily from the PDF extraction stage rather than the LLM itself.
+
+Dedicated table extraction or document-understanding models could improve this in future versions.
+
+---
+
+### 2. Retrieval Recall on Broad Questions
+
+Broad comparative questions can be more difficult than narrow factual questions.
+
+For example:
+
+```text
+Compare Paper A and Paper B's approaches.
+```
+
+Relevant evidence may be distributed across multiple non-adjacent chunks.
+
+As a result, a relevant chunk may not always appear in the final Top-K retrieval results.
+
+This is a retrieval-recall limitation rather than simply an LLM limitation.
+
+Possible improvements include:
+
+* Increasing retrieval Top-K
+* Adding a reranking stage
+* Using a cross-encoder reranker
+* Query expansion
+* Multi-query retrieval
+
+---
+
+### 3. Small Local LLM
+
+ResearchFlow currently uses:
+
+```text
+llama3.2
+```
+
+The model performs well for single-source and multi-source synthesis in testing, but smaller local models can require more explicit prompting and grounding instructions.
+
+A larger local model can be substituted if additional computational resources are available.
+
+For example:
+
+```text
+llama3.1:8b
+```
+
+The rest of the RAG pipeline can remain largely unchanged.
+
+---
+
+### 4. In-Memory Conversation History
+
+Conversation history is currently maintained in memory.
+
+Therefore:
+
+```text
+Server restart
+      ↓
+Conversation history reset
+```
+
+Persistent conversation storage is a potential future improvement.
+
+---
+
+### 5. PDF Viewer
+
+The current source panel displays relevant excerpts and page information.
+
+An integrated PDF viewer with direct page navigation could improve source verification.
+
+---
+
+## Project Structure
+
+```text
+ResearchFlow/
+│
+├── backend/
+│   │
+│   ├── main.py
+│   │
+│   ├── core/
+│   │   └── config.py
+│   │
+│   ├── models/
+│   │   └── schemas.py
+│   │
+│   ├── services/
+│   │   ├── pdf_processor.py
+│   │   ├── chunker.py
+│   │   ├── embeddings.py
+│   │   ├── vector_store.py
+│   │   ├── storage.py
+│   │   ├── retriever.py
+│   │   ├── llm.py
+│   │   └── chat_service.py
+│   │
+│   ├── api/
+│   │   ├── papers.py
+│   │   └── chat.py
+│   │
+│   └── requirements.txt
+│
+├── frontend/
+│   └── index.html
+│
+├── data/
+│   └── uploaded_papers/
+│
+├── vector_store/
+│
+└── README.md
+```
+
+---
+
+## Core Components
+
+### `pdf_processor.py`
+
+Responsible for:
+
+```text
+PDF
+ ↓
+Page-by-page text extraction
+ ↓
+Clean page text
+ ↓
+Page metadata
+```
+
+---
+
+### `chunker.py`
+
+Splits extracted page text into overlapping chunks.
+
+Current configuration:
+
+```text
+Chunk size: ~220 words
+Overlap: ~40 words
+```
+
+The overlap helps preserve context between neighboring chunks.
+
+---
+
+### `embeddings.py`
+
+Uses Ollama's:
+
+```text
+nomic-embed-text
+```
+
+to convert chunks into vector representations.
+
+---
+
+### `vector_store.py`
+
+Stores and retrieves embeddings using ChromaDB.
+
+Each stored chunk contains metadata that allows the system to trace retrieved evidence back to the original paper and page.
+
+---
+
+### `retriever.py`
+
+Implements hybrid retrieval:
+
+```text
+Semantic Search
+      +
+BM25 Search
+      ↓
+Score Fusion
+      ↓
+Top-K Results
+```
+
+Current weighting:
+
+```text
+Semantic = 0.6
+BM25     = 0.4
+```
+
+---
+
+### `llm.py`
+
+Handles communication with the local Ollama LLM.
+
+Responsibilities include:
+
+* Answer generation
+* Follow-up query condensation
+* Grounding instructions
+* Local inference
+
+---
+
+### `chat_service.py`
+
+Acts as the main orchestration layer:
+
+```text
+User Question
+      ↓
+Conversation Context
+      ↓
+Query Resolution
+      ↓
+Retrieval
+      ↓
+Context Construction
+      ↓
+LLM
+      ↓
+Answer + Sources
+```
+
+---
+
+## Design Philosophy
+
+ResearchFlow follows three main principles.
+
+### 1. Local-First
+
+Research papers remain on the user's machine.
+
+No external API is required for inference or embeddings.
+
+### 2. Retrieval Before Generation
+
+The LLM is not expected to know the answer from its training data.
+
+Relevant evidence is retrieved from the uploaded papers first.
+
+```text
+Retrieve
+   ↓
+Ground
+   ↓
+Generate
+```
+
+### 3. Verifiable Answers
+
+Answers should be traceable back to the source material through:
+
+```text
+Paper
++
+Page
++
+Retrieved excerpt
+```
+
+This makes the system more useful for research-oriented question answering.
+
+---
+
+## Future Improvements
+
+Potential improvements include:
+
+* Dedicated table extraction for dense PDF tables
+* Figure and chart understanding
+* Cross-encoder reranking
+* Query expansion
+* Multi-query retrieval
+* Better retrieval evaluation metrics
+* Persistent conversation history
+* Embedded PDF viewer
+* Direct page navigation from citations
+* Support for scanned PDFs through OCR
+* Improved handling of mathematical equations
+* Larger local LLM support
+* Retrieval evaluation using Recall@K and MRR
+
+---
+
+## What This Project Demonstrates
+
+ResearchFlow demonstrates practical understanding of:
+
+* Retrieval-Augmented Generation (RAG)
+* Large Language Models
+* Local LLM deployment
+* Vector embeddings
+* Semantic search
+* BM25 keyword retrieval
+* Hybrid retrieval
+* ChromaDB
+* PDF document processing
+* Chunking strategies
+* Conversational query reformulation
+* Source attribution
+* Citation grounding
+* Hallucination resistance
+* RAG debugging and evaluation
+* FastAPI
+* Full-stack ML application development
+
+---
+
+## License
+
+This project is intended for educational and portfolio purposes.
+
+```
 ```
