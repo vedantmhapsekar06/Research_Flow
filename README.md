@@ -1,6 +1,3 @@
-Here's the full README content — copy this whole block and paste it into GitHub's README editor (pencil icon on the README file):
-
-```markdown
 # ResearchFlow
 
 A fully local, hybrid-retrieval RAG chatbot for querying multiple research papers — no paid APIs, no cloud dependency. Upload PDFs, ask natural-language questions, get answers grounded in the actual paper text with page-level citations.
@@ -136,4 +133,4 @@ frontend/
 - Embedded PDF viewer in the sources panel (currently shows excerpt snippets only)
 ```
 
-Paste that in, hit commit — and your repo now documents not just what the project does, but how you actually validated it and debugged a real failure mode, which is exactly the kind of substance that stands out in a portfolio piece.
+
