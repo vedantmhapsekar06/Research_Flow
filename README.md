@@ -776,51 +776,6 @@ Retrieved excerpt
 
 This makes the system more useful for research-oriented question answering.
 
----
-
-## Future Improvements
-
-Potential improvements include:
-
-* Dedicated table extraction for dense PDF tables
-* Figure and chart understanding
-* Cross-encoder reranking
-* Query expansion
-* Multi-query retrieval
-* Better retrieval evaluation metrics
-* Persistent conversation history
-* Embedded PDF viewer
-* Direct page navigation from citations
-* Support for scanned PDFs through OCR
-* Improved handling of mathematical equations
-* Larger local LLM support
-* Retrieval evaluation using Recall@K and MRR
-
----
-
-## What This Project Demonstrates
-
-ResearchFlow demonstrates practical understanding of:
-
-* Retrieval-Augmented Generation (RAG)
-* Large Language Models
-* Local LLM deployment
-* Vector embeddings
-* Semantic search
-* BM25 keyword retrieval
-* Hybrid retrieval
-* ChromaDB
-* PDF document processing
-* Chunking strategies
-* Conversational query reformulation
-* Source attribution
-* Citation grounding
-* Hallucination resistance
-* RAG debugging and evaluation
-* FastAPI
-* Full-stack ML application development
-
----
 
 ## License
 
