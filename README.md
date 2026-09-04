@@ -618,6 +618,8 @@ ResearchFlow/
 │   └── index.html
 │
 ├── data/
+│   ├── chroma_db/
+│   ├── store/
 │   └── uploaded_papers/
 │
 ├── vector_store/
